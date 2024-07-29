@@ -169,9 +169,9 @@ int esb_initialize(void)
 	struct esb_config config = ESB_DEFAULT_CONFIG;
 
 	config.protocol = ESB_PROTOCOL_ESB_DPL;
-	config.retransmit_delay = 600;
-	config.retransmit_count = 400;
-	config.bitrate = ESB_BITRATE_4MBPS;
+	config.retransmit_delay = 300;
+	config.retransmit_count = 40;
+	config.bitrate = ESB_BITRATE_2MBPS;
 	config.event_handler = event_handler;
 	config.mode = ESB_MODE_PTX;
 	config.selective_auto_ack = true;
@@ -200,7 +200,7 @@ int esb_initialize(void)
 		return err;
 	}
 
-	err = esb_set_rf_channel(0);
+	err = esb_set_rf_channel(40);
 	if (err) {
 		return err;
 	}

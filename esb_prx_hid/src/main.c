@@ -12,7 +12,8 @@
 #include <zephyr/drivers/timer/nrf_grtc_timer.h>
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/usb/usbd.h>
-#include <zephyr/usb/class/usb_hid.h>
+// #include <zephyr/usb/class/usb_hid.h>
+#include <zephyr/usb/class/usbd_hid.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/irq.h>
 #include <zephyr/logging/log.h>
@@ -45,6 +46,7 @@ static const struct gpio_dt_spec led3 = GPIO_DT_SPEC_GET(DT_ALIAS(led3), gpios);
 static const uint8_t hid_report_desc[] = HID_MOUSE_REPORT_DESC(2);
 
 static atomic_t usb_state = ATOMIC_INIT(0);
+static K_SEM_DEFINE(report_sem, 0, 1);
 
 static struct esb_payload rx_payload;
 static struct esb_payload tx_payload = ESB_CREATE_PAYLOAD(0,
@@ -97,7 +99,7 @@ K_MSGQ_DEFINE(print_msgq,
 
 K_MSGQ_DEFINE(usb_hid_msgq,
 	      sizeof(struct usb_hid_msg),
-	      8,
+	      16,
 	      sizeof(uint32_t));
 
 static struct k_thread print_thread;
@@ -185,7 +187,7 @@ int esb_initialize(void)
 	struct esb_config config = ESB_DEFAULT_CONFIG;
 
 	config.protocol = ESB_PROTOCOL_ESB_DPL;
-	config.bitrate = ESB_BITRATE_4MBPS;
+	config.bitrate = ESB_BITRATE_2MBPS;
 	config.mode = ESB_MODE_PRX;
 	config.event_handler = event_handler;
 	config.selective_auto_ack = true;
@@ -213,7 +215,7 @@ int esb_initialize(void)
 		return err;
 	}
 
-	err = esb_set_rf_channel(0);
+	err = esb_set_rf_channel(40);
 	if (err) {
 		return err;
 	}
@@ -271,9 +273,17 @@ static void status_cb(enum usb_dc_status_code status, const uint8_t *param)
 	}
 }
 
+static uint32_t idle_duration;
+
 void user_sof(const struct device *dev)
 {
-	gpio_pin_toggle(led3.port, led3.pin);
+	// gpio_pin_toggle(led3.port, led3.pin);
+	k_sem_give(&report_sem);
+}
+
+static void iface_ready_next(const struct device *dev, const bool ready)
+{
+	return;
 }
 
 static int get_report_next(const struct device *dev, const uint8_t type, const uint8_t id,
@@ -282,6 +292,29 @@ static int get_report_next(const struct device *dev, const uint8_t type, const u
 	return len;
 }
 
+static int set_report_next(const struct device *dev, const uint8_t type, const uint8_t id,
+			   const uint16_t len, const uint8_t *const buf)
+{
+	return len;
+}
+static void set_idle_next(const struct device *dev, const uint8_t id, const uint32_t duration)
+{
+	idle_duration = duration;
+}
+
+static uint32_t get_idle_next(const struct device *dev, const uint8_t id)
+{
+	return idle_duration;
+}
+
+static void report_sent_cb_next(const struct device *dev)
+{
+	return;
+}
+static void protocol_change(const struct device *dev, uint8_t protocol)
+{
+	return;
+}
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
 static int enable_usb_device_next(void)
 {
@@ -312,8 +345,15 @@ static void usb_hid_main(void)
 	const struct device *hid_dev;
 	struct usb_hid_msg msg;
 	static const struct hid_device_ops my_ops = {
+		.iface_ready = iface_ready_next,
 		.get_report = get_report_next,
+		.set_report = set_report_next,
+		.set_idle = set_idle_next,
+		.get_idle = get_idle_next,
+		.set_protocol = protocol_change,
+		.input_report_done = report_sent_cb_next,
 		.sof = user_sof,
+
 	};
 
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
@@ -333,8 +373,6 @@ static void usb_hid_main(void)
 #if defined(CONFIG_USB_DEVICE_STACK_NEXT)
 	err = enable_usb_device_next();
 #else
-	usb_hid_init(hid_dev);
-
 	err = usb_enable(status_cb);
 #endif
 	if (err) {
@@ -353,7 +391,9 @@ static void usb_hid_main(void)
 	while (!k_msgq_get(&usb_hid_msgq, &msg, K_FOREVER)) {
 		switch(msg.type) {
 		case USB_HID_MSG_REPORT:
-			if (atomic_test_bit(&usb_state, 0)) {
+			k_sem_take(&report_sem, K_FOREVER);
+			{
+			// if (atomic_test_bit(&usb_state, 0)) {
 				err = hid_int_ep_write(hid_dev,
 						       msg.report,
 						       sizeof(msg.report),
@@ -396,7 +436,7 @@ int main(void)
 
 	err = gpio_pin_configure_dt(&led3, GPIO_OUTPUT);
 	if (err < 0) {
-		LOG_ERR("Failed to configure the LED pin, error: %d", ret);
+		LOG_ERR("Failed to configure the LED pin, error: %d", err);
 		return 0;
 	}
 	err = esb_initialize();
