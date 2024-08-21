@@ -179,7 +179,7 @@ int clocks_start(void)
 			return res;
 		}
 	} while (err);
-
+【
 	LOG_DBG("HF clock started");
 	return 0;
 }
@@ -198,9 +198,11 @@ int esb_initialize(void)
 	struct esb_config config = ESB_DEFAULT_CONFIG;
 
 	config.protocol = ESB_PROTOCOL_ESB_DPL;
-	config.bitrate = ESB_BITRATE_2MBPS;
+	config.bitrate = ESB_BITRATE_4MBPS;
 	config.mode = ESB_MODE_PRX;
 	config.event_handler = event_handler;
+	config.crc = ESB_CRC_24BIT;
+
 	config.selective_auto_ack = true;
 	if (IS_ENABLED(CONFIG_ESB_FAST_SWITCHING)) {
 		config.use_fast_ramp_up = true;

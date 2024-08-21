@@ -187,9 +187,10 @@ int esb_initialize(void)
 	struct esb_config config = ESB_DEFAULT_CONFIG;
 
 	config.protocol = ESB_PROTOCOL_ESB_DPL;
-	config.bitrate = ESB_BITRATE_2MBPS;
+	config.bitrate = ESB_BITRATE_4MBPS;
 	config.mode = ESB_MODE_PRX;
 	config.event_handler = event_handler;
+	config.crc = ESB_CRC_24BIT;
 	config.selective_auto_ack = true;
 	if (IS_ENABLED(CONFIG_ESB_FAST_SWITCHING)) {
 		config.use_fast_ramp_up = true;
@@ -215,7 +216,7 @@ int esb_initialize(void)
 		return err;
 	}
 
-	err = esb_set_rf_channel(40);
+	err = esb_set_rf_channel(80);
 	if (err) {
 		return err;
 	}

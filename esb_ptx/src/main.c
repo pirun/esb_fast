@@ -48,7 +48,7 @@ static struct esb_payload rx_payload;
 static struct esb_payload tx_payload = ESB_CREATE_PAYLOAD(0, 0x01, 0x02, 0x03, 0x04);
 K_MSGQ_DEFINE(main_msgq,
 	      sizeof(struct main_msg),
-	      8,
+	      64,
 	      sizeof(uint32_t));
 
 K_MSGQ_DEFINE(print_msgq,
@@ -169,10 +169,12 @@ int esb_initialize(void)
 	struct esb_config config = ESB_DEFAULT_CONFIG;
 
 	config.protocol = ESB_PROTOCOL_ESB_DPL;
-	config.retransmit_delay = 300;
-	config.retransmit_count = 40;
-	config.bitrate = ESB_BITRATE_2MBPS;
+	config.retransmit_delay = 500;
+	config.retransmit_count = 5;
+	config.bitrate = ESB_BITRATE_4MBPS;
 	config.event_handler = event_handler;
+	config.crc = ESB_CRC_24BIT;
+
 	config.mode = ESB_MODE_PTX;
 	config.selective_auto_ack = true;
 	if (IS_ENABLED(CONFIG_ESB_FAST_SWITCHING)) {
@@ -200,7 +202,7 @@ int esb_initialize(void)
 		return err;
 	}
 
-	err = esb_set_rf_channel(40);
+	err = esb_set_rf_channel(80);
 	if (err) {
 		return err;
 	}
