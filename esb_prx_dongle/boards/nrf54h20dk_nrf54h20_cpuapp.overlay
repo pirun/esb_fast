@@ -1,0 +1,24 @@
+/*
+ * Copyright (c) 2024 Nordic Semiconductor
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ */
+
+/ {
+	hid_dev_0: hid_dev_0 {
+		compatible = "zephyr,hid-device";
+		interface-name = "HID0";
+		protocol-code = "mouse";
+		in-polling-rate = <125>;
+		in-report-size = <64>;
+	};
+
+};
+
+zephyr_udc0: &usbhs {
+	status = "okay";
+};
+
+&grtc {
+	owned-channels = <5 6 7 8 9 >;
+};

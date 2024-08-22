@@ -1,0 +1,21 @@
+/*
+ * Copyright (c) 2024 Nordic Semiconductor ASA
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ */
+
+&uart135 {
+	/delete-property/ hw-flow-control;
+};
+
+&dppic020 {
+	status = "okay";
+	source-channels = < 0 1 >;
+	sink-channels = < 2 3 >;
+};
+
+&grtc {
+	owned-channels = < 0xa 0xb 0xc 0xd 0xe 0xf>;
+	child-owned-channels = < 0xa 0xb 0xc >;
+	nonsecure-channels = < 0xa 0xb 0xc >;
+
+};
